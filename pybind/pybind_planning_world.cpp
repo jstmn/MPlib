@@ -10,6 +10,7 @@
 #include "docstring/planning_world.h"
 #include "mplib/planning_world.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

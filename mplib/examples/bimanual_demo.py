@@ -2,7 +2,7 @@
 
 import numpy as np
 import sapien.core as sapien
-
+import os
 from mplib.examples.bimanual_demo_setup import BimanualDemoSetup
 
 
@@ -22,25 +22,41 @@ class BimanualPlanningDemo(BimanualDemoSetup):
         # Load the world, the robot, and then setup the planner
         self.setup_scene()
         self.load_robot()
-        self.setup_planner()
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.local_assets_dir = os.path.join(current_dir, "panda_assets")
+        srdf_path = os.path.join(self.local_assets_dir, "mobile_panda_dual_arm_fixed.srdf")
+        # srdf_path = ""
+        self.setup_planner(srdf_path=srdf_path)
 
-        # Set initial joint positions (all arms in a neutral pose)
-        # Note: Adjust these based on your specific URDF joint ordering
-        init_qpos = np.zeros(17)  # Adjust based on your robot's DOF
-        # Base joints (mobile base): root_x, root_y, root_z_rotation, height
-        init_qpos[0] = 0.0   # root_x_axis_joint
-        init_qpos[1] = 0.0   # root_y_axis_joint
-        init_qpos[2] = 0.0   # root_z_rotation_joint
-        init_qpos[3] = 0.0   # linear_actuator_height
+        # Check the actual DOF of the loaded robot
+        print(f"Robot DOF: {self.robot.dof}")
+        init_qpos = np.zeros(self.robot.dof)
+        # 1. Base joints (0-3)
+        # Keep X=0.0 to stay safely away from the table at X=0.6
+        init_qpos[0:4] = [0.0, 0.0, 0.0, 0]
 
-        # Right arm (7 DOF Panda): joints 4-10
-        init_qpos[4:11] = [0, 0.19, 0.0, -2.62, 0.0, 2.94, 0.79]
+        # 2. Right arm (4-10) - Standard "Home" Pose
+        init_qpos[4:11] = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]
+        # Alternative (The one you used):
+        # init_qpos[4:11] = [0, 0.19, 0.0, -2.62, 0.0, 2.94, 0.79]
+
+        # 3. Right Gripper (11-12) - Open
+        # Note: Gripper indices are 11 and 12
+        init_qpos[11:13] = [0.04, 0.04]
+
+        # 4. Left arm (13-19)
+        # Note: Left Arm starts at index 13 (4 base + 7 arm + 2 gripper)
+        # We MIRROR the pose (invert Joint 1, 3, 5, 7) for symmetry
+        init_qpos[13:20] = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]
         
-        # Left arm (7 DOF Panda): joints 11-17
-        init_qpos[11:18] = [0, 0.19, 0.0, -2.62, 0.0, 2.94, 0.79]
+        # 5. Left Gripper (20-21) - Open
+        init_qpos[20:22] = [0.04, 0.04]
         
+        # Apply and Update
         self.robot.set_qpos(init_qpos)
-
+        self.active_joints = self.robot.get_active_joints()
+        for i, joint in enumerate(self.active_joints):
+            joint.set_drive_target(init_qpos[i])
         # Create table for objects to rest on
         builder = self.scene.create_actor_builder()
         builder.add_box_collision(half_size=[0.5, 0.5, 0.025])
@@ -52,24 +68,38 @@ class BimanualPlanningDemo(BimanualDemoSetup):
         # Left box (for left arm)
         builder = self.scene.create_actor_builder()
         builder.add_box_collision(half_size=[0.03, 0.03, 0.05])
-        builder.add_box_visual(half_size=[0.03, 0.03, 0.05], color=[1, 0, 0])
+        builder.add_box_visual(half_size=[0.03, 0.03, 0.05])
         self.left_box = builder.build(name="left_box")
         self.left_box.set_pose(sapien.Pose([0.3, 0.2, 0.05]))
 
         # Right box (for right arm)
         builder = self.scene.create_actor_builder()
         builder.add_box_collision(half_size=[0.03, 0.03, 0.05])
-        builder.add_box_visual(half_size=[0.03, 0.03, 0.05], color=[0, 1, 0])
+        builder.add_box_visual(half_size=[0.03, 0.03, 0.05])
         self.right_box = builder.build(name="right_box")
         self.right_box.set_pose(sapien.Pose([0.6, -0.2, 0.05]))
 
         # Optional: Create a shared object for constrained grasp demo
         builder = self.scene.create_actor_builder()
         builder.add_box_collision(half_size=[0.04, 0.02, 0.08])
-        builder.add_box_visual(half_size=[0.04, 0.02, 0.08], color=[0, 0, 1])
+        builder.add_box_visual(half_size=[0.04, 0.02, 0.08])
         self.shared_object = builder.build(name="shared_object")
         self.shared_object.set_pose(sapien.Pose([0.45, 0, 0.08]))
 
+    # def get_local_target(robot, arm_base_link_index, world_target_pose):
+    #     # 1. Get the Arm's Base Pose in World Frame
+    #     # (You need to find the correct link index for the shoulder/base of the arm)
+    #     T_world_base = robot.get_links()[arm_base_link_index].get_pose()
+        
+    #     # 2. Compute the Local Target: T_local = T_base^(-1) * T_world
+    #     T_target_world = sapien.Pose(world_target_pose[:3], world_target_pose[3:])
+    #     T_target_local = T_world_base.inv() * T_target_world
+        
+    #     # Return as list [x, y, z, w, x, y, z] (Check quaternion order below!)
+    #     p = T_target_local.p
+    #     q = T_target_local.q
+    #     return [p[0], p[1], p[2], q[0], q[1], q[2], q[3]]
+    
     def demo_independent_motion(self):
         """
         Phase 1: Both arms move independently to different target poses.
@@ -80,11 +110,11 @@ class BimanualPlanningDemo(BimanualDemoSetup):
 
         # Define target poses for each arm
         # Left arm target: [x, y, z, qx, qy, qz, qw]
-        left_target = [0.3, 0.2, 0.2, 0, 1, 0, 0]
+        left_target = [0.3, 0.2, 0.2, 0, 0, 0, 1]
         
         # Right arm target: [x, y, z, qx, qy, qz, qw]
-        right_target = [0.6, -0.2, 0.2, 0, 1, 0, 0]
-
+        right_target = [0.6, -0.2, 0.2, 0, 0, 0, 1]
+        print(self.robot)
         # Plan and move both arms to their targets
         result = self.move_to_pose_pair(left_target, right_target)
         if result == -1:
@@ -193,11 +223,21 @@ class BimanualPlanningDemo(BimanualDemoSetup):
         print("\n" + "=" * 60)
         print("BIMANUAL ROBOT MOTION PLANNING DEMO")
         print("=" * 60)
-
+        self.lock_base_joints()
         # Open grippers initially
         print("Opening both grippers...")
         self.open_both_grippers()
-
+        collisions = self.planner.check_for_env_collision(qpos=self.robot.get_qpos())
+        if len(collisions) > 0:
+            print("HI 6")
+            print(f"❌ STILL COLLIDING! Found {len(collisions)} contacts:")
+            for c in collisions:
+                 # Try accessing different attributes depending on MPLib version
+                 n1 = getattr(c, "link_name1", getattr(c, "object_name1", str(c)))
+                 n2 = getattr(c, "link_name2", getattr(c, "object_name2", str(c)))
+                 print(f"  {n1} <--> {n2}")
+            return
+        print("HI 7")
         # Phase 1: Independent motion
         if not self.demo_independent_motion():
             print("Demo stopped at Phase 1")

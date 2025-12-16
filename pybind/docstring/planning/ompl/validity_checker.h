@@ -24,20 +24,6 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-static const char *__doc_mplib_planning_ompl_ValidityCheckerTpl = R"doc()doc";
-
-static const char *__doc_mplib_planning_ompl_ValidityCheckerTpl_ValidityCheckerTpl =
-R"doc(
-)doc";
-
-static const char *__doc_mplib_planning_ompl_ValidityCheckerTpl_isValid =
-R"doc(
-)doc";
-
-static const char *__doc_mplib_planning_ompl_ValidityCheckerTpl_isValid_2 =
-R"doc(
-)doc";
-
 /* ----- Begin of custom docstring section ----- */
 
 /* ----- End of custom docstring section ----- */

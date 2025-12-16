@@ -11,6 +11,7 @@
 #include "mplib/collision_detection/fcl/collision_common.h"
 #include "mplib/utils/pose.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

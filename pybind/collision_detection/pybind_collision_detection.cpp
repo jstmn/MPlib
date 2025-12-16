@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#define DOC(...) ""
 
 namespace py = pybind11;
 

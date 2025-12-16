@@ -5,6 +5,7 @@
 #include "docstring/collision_detection/fcl/fcl_utils.h"
 #include "mplib/collision_detection/fcl/fcl_utils.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

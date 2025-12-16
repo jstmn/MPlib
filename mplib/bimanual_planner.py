@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from typing import Optional, Sequence
-
 import numpy as np
 import toppra as ta
 import toppra.algorithm as algo
@@ -11,6 +10,8 @@ from transforms3d.quaternions import mat2quat, quat2mat
 import pinocchio
 from mplib.pymp import ArticulatedModel, PlanningWorld
 from mplib.pymp.planning import ompl
+from mplib.planning.ompl import OMPLPlanner
+from pathlib import Path
 
 class BimanualPlanner:
     def __init__(
@@ -30,19 +31,48 @@ class BimanualPlanner:
             joint_vel_limits = []
         if joint_acc_limits is None:
             joint_acc_limits = []
-
-        self.urdf = urdf
-        # ... (Standard SRDF handling logic remains here) ...
-        if srdf == "" and os.path.exists(urdf.replace(".urdf", ".srdf")):
-            self.srdf = urdf.replace(".urdf", ".srdf")
-
-        # Replace package keyword logic...
+        print("HI 1")
+        self.urdf = str(urdf)
         urdf = self.replace_package_keyword(package_keyword_replacement)
-
-        # If user didn't specify joints, we load the model first to inspect it
-        temp_robot = ArticulatedModel(urdf, srdf, [0, 0, -9.81], [], [], convex=True, verbose=True)
-        all_joint_names = temp_robot.get_pinocchio_model().get_joint_names()
+        self.urdf = str(urdf)
+        # ... (Standard SRDF handling logic remains here) ...
+        # if srdf == "" and os.path.exists(urdf.replace(".urdf", ".srdf")):
+        self.srdf = urdf.replace(".urdf", ".srdf")
+        if srdf == "":
+            potential_srdf = self.urdf.replace(".urdf", ".srdf")
+            if os.path.exists(potential_srdf):
+                self.srdf = potential_srdf
+            else:
+                # Create a minimal dummy SRDF
+                print("Generating dummy SRDF to prevent crash...")
+                dummy_srdf_path = self.urdf.replace(".urdf", "_dummy.srdf")
+                with open(dummy_srdf_path, "w") as f:
+                    f.write(f'<?xml version="1.0"?><robot name="dummy_robot"></robot>')
+                self.srdf = dummy_srdf_path
+        else:
+            self.srdf = srdf
         
+        
+        # Replace package keyword logic...
+        # If user didn't specify joints, we load the model first to inspect it
+        # temp_robot = ArticulatedModel(urdf, srdf, np.array([0, 0, -9.81]), [], [], convex=True, verbose=True)
+        # temp_robot = ArticulatedModel(
+        #     urdf, 
+        #     srdf, 
+        #     gravity=np.array([0, 0, -9.81]),  # ← keyword argument
+        #     # link_names=None,                     # ← keyword argument
+        #     # joint_names=None,                    # ← keyword argument
+        #     convex=False,                  # malformed urdfs may cause segmentation faults
+        #     verbose=True
+        # )
+        temp_robot = pinocchio.buildModelFromUrdf(urdf)  # Ensure model is built
+        print("HI 2")
+        all_joint_names = list(temp_robot.names[1:])
+        all_link_names = [
+            f.name for f in temp_robot.frames 
+            if f.type == pinocchio.FrameType.BODY
+        ]
+        # print(all_joint_names)
         # Define known base joints from your URDF to easily filter them
         base_joints = [
             "root_x_axis_joint", 
@@ -61,36 +91,40 @@ class BimanualPlanner:
                     if jn not in base_joints
                 ]
                 print(f"Excluding base joints: {base_joints}")
-        
-            
+        print(self.srdf)
+        print(self.urdf)
+        self.user_joint_names = user_joint_names
         self.robot = ArticulatedModel(
-            urdf,
-            srdf,
-            [0, 0, -9.81],
-            user_link_names,
-            user_joint_names, # Now strictly controlled
-            convex=True,
-            verbose=False,
+            urdf_filename=urdf,
+            srdf_filename=self.srdf,
+            gravity=np.array([0, 0, -9.81], dtype=np.float64).reshape(3, 1),
+            link_names=all_link_names,    # <--- Critical: Pass full list
+            joint_names=all_joint_names,  # <--- Critical: Pass full list
+            convex=False,                 # Keep False to avoid mesh segfaults
+            verbose=False
         )
-
+        print("HI 3")
         self.pinocchio_model = self.robot.get_pinocchio_model()
         self.user_link_names = self.pinocchio_model.get_link_names()
         self.user_joint_names = self.pinocchio_model.get_joint_names()
-
         self.planning_world = PlanningWorld(
             [self.robot],
-            ["robot"],
+            # ["robot"],
             kwargs.get("normal_objects", []),
-            kwargs.get("normal_object_names", []),
+            # kwargs.get("normal_object_names", []),
         )
-
-        if srdf == "":
-            self.generate_collision_pair() # Need to create this function
-            self.robot.update_SRDF(self.srdf)
-
+        print("HI 4")
         # Map names to indices
         self.joint_name_2_idx = {j: i for i, j in enumerate(self.user_joint_names)}
         self.link_name_2_idx = {l: i for i, l in enumerate(self.user_link_names)}
+    
+        if srdf == "":
+            print("HI 4")
+            self.generate_collision_pair() # Need to create this function
+            print("HI 5")
+            print(self.srdf)
+            self.robot.update_SRDF(self.srdf)
+
 
         # Here we handle the move_group. We define a alias called "dual_arm"
         # According to the URDF, left_panda_hand refers to the palm of the left hand, to which
@@ -113,15 +147,40 @@ class BimanualPlanner:
         # We donot want chains to be overlapping
         joint_indices_set = set()
 
-        for link in target_links:
-            self.robot.set_move_group(link)
-            indices = self.robot.get_move_group_joint_indices()
-            for idx in indices:
-                # Add this joint only if it is in "user_joint_names" list
-                # This is done to filter out the base joints
-                if idx < len(self.user_joint_names):
-                    joint_indices_set.add(idx)
-        self.move_group_joint_indices = sorted(list(joint_indices_set))
+        # for link in target_links:
+        #     self.robot.set_move_group(link)
+        #     indices = self.robot.get_move_group_joint_indices()
+        #     for idx in indices:
+        #         # Add this joint only if it is in "user_joint_names" list
+        #         # This is done to filter out the base joints
+        #         if idx < len(self.user_joint_names):
+        #             joint_indices_set.add(idx)
+        # self.move_group_joint_indices = sorted(list(joint_indices_set))
+        
+        self.move_group_joint_indices = []
+        
+        # 1. Define the specific joints we want to control (18 DOF)
+        # Note: These names MUST match your URDF exactly.
+        target_joint_names = [
+            # Base (4)
+            "root_x_axis_joint", "root_y_axis_joint", "root_z_rotation_joint", "linear_actuator_height",
+            # Right Arm (7)
+            "right_panda_joint1", "right_panda_joint2", "right_panda_joint3", "right_panda_joint4", 
+            "right_panda_joint5", "right_panda_joint6", "right_panda_joint7",
+            # Left Arm (7)
+            "left_panda_joint1", "left_panda_joint2", "left_panda_joint3", "left_panda_joint4", 
+            "left_panda_joint5", "left_panda_joint6", "left_panda_joint7"
+        ]
+
+        # 2. Find their indices automatically
+        for name in target_joint_names:
+            if name in self.joint_name_2_idx:
+                self.move_group_joint_indices.append(self.joint_name_2_idx[name])
+            else:
+                print(f"Warning: Joint {name} not found in robot model!")
+        
+        self.move_group_joint_indices = sorted(self.move_group_joint_indices)
+        print(f"Manually compiled {len(self.move_group_joint_indices)} active joints.")
         
         self.joint_types = self.pinocchio_model.get_joint_types()
         self.joint_limits = np.concatenate(self.pinocchio_model.get_joint_limits())
@@ -159,8 +218,16 @@ class BimanualPlanner:
             f"length of joint_vel_limits ({len(self.joint_vel_limits)}) > "
             f"number of total joints ({len(self.joint_limits)})"
         )
-
-        self.planning_world = PlanningWorld([self.robot], ["robot"], [], [])
+        # === FIX STARTS HERE ===
+        # 1. Force the robot to recognize the "dual_arm" group defined in your SRDF.
+        # Previously, the loop above set it to "right_panda_hand" (11 DOF), which caused the crash.
+        # Now we reset it to "dual_arm" (18 DOF) so OMPL sees the correct dimension.
+        # if move_group == "dual_arm":
+        #     print(f"Setting active move group to: {move_group}")
+        #     self.robot.set_move_group(move_group)
+        #     print("HI 2")
+        # === FIX ENDS HERE ===
+        self.planning_world = PlanningWorld([self.robot], [])
         self.planner = ompl.OMPLPlanner(world=self.planning_world)
 
     def replace_package_keyword(self, package_keyword_replacement):
@@ -182,7 +249,7 @@ class BimanualPlanner:
                         out_f.write(content)
         return rtn_urdf
 
-    def generate_collision_pair(self, sample_time=1000000, echo_freq=100000):
+    def generate_collision_pair(self, sample_time=1000, echo_freq=100000):
         """
         We read the srdf file to get the link pairs that should not collide.
         If not provided, we need to randomly sample configurations
@@ -197,7 +264,7 @@ class BimanualPlanner:
         for i in range(sample_time):
             qpos = self.pinocchio_model.get_random_configuration()
             self.robot.set_qpos(qpos, True)
-            collisions = self.planning_world.collide_full()
+            collisions = self.planning_world.check_collision()
             for collision in collisions:
                 u = self.link_name_2_idx[collision.link_name1]
                 v = self.link_name_2_idx[collision.link_name2]
@@ -294,22 +361,26 @@ class BimanualPlanner:
         qpos: Optional[np.ndarray] = None,
     ) -> list:
         """helper function to check for collision"""
-        # handle no user input
+        # 1. Handle defaults
         if articulation is None:
             articulation = self.robot
         if qpos is None:
             qpos = articulation.get_qpos()
+            
+        # 2. Prepare Robot State
         qpos = self.pad_qpos(qpos, articulation)
-
-        # first save the current qpos
         old_qpos = articulation.get_qpos()
-        # set robot to new qpos
+        
+        # 3. Update Robot to Check Pose
+        # The 'True' flag updates the internal FCL collision models immediately
         articulation.set_qpos(qpos, True)
-        # find the index of the articulation inside the array
-        idx = self.planning_world.get_articulations().index(articulation)
-        # check for self-collision
-        collisions = collision_function(idx)
-        # reset qpos
+        
+        # 4. PERFORM CHECK (The Fix)
+        # Old API: collisions = collision_function(idx)
+        # New API: collision_function() takes no arguments (uses current state)
+        collisions = collision_function()
+        
+        # 5. Restore State
         articulation.set_qpos(old_qpos, True)
         return collisions
     
@@ -350,35 +421,33 @@ class BimanualPlanner:
             A list of collisions.
         """
         # store previous results
-        prev_use_point_cloud = self.planning_world.use_point_cloud
-        prev_use_attach = self.planning_world.use_attach
-        self.planning_world.set_use_point_cloud(with_point_cloud)
-        self.planning_world.set_use_attach(use_attach)
+        # prev_use_point_cloud = self.planning_world.use_point_cloud
+        # prev_use_attach = self.planning_world.use_attach
+        # self.planning_world.set_use_point_cloud(with_point_cloud)
+        # self.planning_world.set_use_attach(use_attach)
 
         results = self.check_for_collision(
-            self.planning_world.collide_with_others, articulation, qpos
+            self.planning_world.check_robot_collision, articulation, qpos
         )
 
         # restore
-        self.planning_world.set_use_point_cloud(prev_use_point_cloud)
-        self.planning_world.set_use_attach(prev_use_attach)
+        # self.planning_world.set_use_point_cloud(prev_use_point_cloud)
+        # self.planning_world.set_use_attach(prev_use_attach)
         return results
     
     # This IK works only in the world frame, not the base of the bot frame
-    def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, left_link_name="left_panda_hand", right_link_name="right_panda_hand", threshold=1e-3, max_iter=100, step_size=0.1):
-        """
-        Inverse kinematics for bimanual robot using CLIK method.
+    """def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, left_link_name="left_panda_hand", right_link_name="right_panda_hand", threshold=1e-3, max_iter=200, step_size=0.1):
+        # Inverse kinematics for bimanual robot using CLIK method.
 
-        Args:
-            left_target_pose: 4x4 homogeneous transformation matrix for left end-effector
-            right_target_pose: 4x4 homogeneous transformation matrix for right end-effector
-            start_qpos: initial joint configuration
-            left_link_name: name of the left end-effector link
-            right_link_name: name of the right end-effector link
-            threshold: convergence threshold
-            max_iter: maximum number of iterations
-        """
-
+        # Args:
+        #     left_target_pose: 4x4 homogeneous transformation matrix for left end-effector
+        #     right_target_pose: 4x4 homogeneous transformation matrix for right end-effector
+        #     start_qpos: initial joint configuration
+        #     left_link_name: name of the left end-effector link
+        #     right_link_name: name of the right end-effector link
+        #     threshold: convergence threshold
+        #     max_iter: maximum number of iterations
+        print("HI 3")
         # Note we cannot use the compute_IK_CLIK directly since it only supports single end-effector.
         # We will use something that is commonly used in industry standard application to find the inverse kinematics
         # It uses gradient descent with pinnochio, computing the Jacobian for both arms and updating accordingly.
@@ -391,6 +460,7 @@ class BimanualPlanner:
 
         # Use the active joints defined in our __init__ logic
         active_indices = self.move_group_joint_indices
+        active_indices = [i for i in active_indices if i >= 4]
         q = np.copy(start_qpos)
 
         # This helper function computes error in 6D, now this is different from error
@@ -415,11 +485,13 @@ class BimanualPlanner:
             self.pinocchio_model.compute_forward_kinematics(q)
 
             # Get the current pose as SE3 objects
-            p_L_array = self.pinocchio_model.get_global_link_transform(left_idx)
-            current_L_se3 = to_SE3(p_L_array)
+            p_L_array = self.pinocchio_model.get_link_pose(left_idx)
+            current_L_7d = np.concatenate([p_L_array.p, p_L_array.q])
+            current_L_se3 = to_SE3(current_L_7d)
 
-            p_R_array = self.pinocchio_model.get_global_link_transform(right_idx)
-            current_R_se3 = to_SE3(p_R_array)
+            p_R_array = self.pinocchio_model.get_link_pose(right_idx)
+            current_R_7d = np.concatenate([p_R_array.p, p_R_array.q])
+            current_R_se3 = to_SE3(current_R_7d)
 
             # Compute error using current^-1*target
             # log computes the twist(velocity) required to travel that difference
@@ -428,7 +500,7 @@ class BimanualPlanner:
             error_R = pinocchio.log(current_R_se3.actInv(target_R_se3)).vector
 
             error_stack = np.concatenate([error_L, error_R])  # 12D error vector
-
+            # print(error_stack)
             if np.linalg.norm(error_stack) < threshold:
                 print(f"IK converged in {i} iterations.")
                 return q
@@ -436,20 +508,121 @@ class BimanualPlanner:
             # Compute Jacobians for both end-effectors
             self.pinocchio_model.compute_full_jacobian(q) # This line will refresh and compute new matrices according to the new configurations
             
-            J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=False)[:, active_indices] # This will compute the jacobian for the left hand
-            J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=False)[:, active_indices] # This will compute the jacobian for the right hand
+            J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=True)[:, active_indices] # This will compute the jacobian for the left hand
+            J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=True)[:, active_indices] # This will compute the jacobian for the right hand
             # Notice above, how we filter out the base joints movement, using active indices
             # Why is this filtering valid?
             # Essentially, Jacobian says given the velocities of my joints, what is the velocity of my EE. Thats all. Each time  configuration of the arm changes
             # we might calculate new jacobian, that means a new map between the ee velocity and the joint velocities, but filtering out the columns from it, means our
             # input joint velocities corresponding to the base is 0, so the ee will not even move the base!
             # D. Solve
+            # print(active_indices)
             J_stack = np.vstack([J_L, J_R])
             dq = np.linalg.pinv(J_stack) @ error_stack
             q[active_indices] += step_size * dq
+            q = np.clip(q, self.joint_limits[:, 0], self.joint_limits[:, 1])
+            print(q)
+        print("IK did not converge within the maximum number of iterations.")
+        return "Failed", q"""
+ 
+    def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, left_link_name="left_panda_hand", right_link_name="right_panda_hand", threshold=1e-3, max_iter=100, step_size=0.1, attempts=100):
+        if start_qpos is None:
+            start_qpos = self.robot.get_qpos()
         
-        return "Failed", q
-    
+        left_idx = self.link_name_2_idx.get(left_link_name, -1)
+        right_idx = self.link_name_2_idx.get(right_link_name, -1)
+        
+        # Filter active indices (Arms Only: >= 4)
+        all_indices = self.move_group_joint_indices
+        active_indices = [i for i in all_indices if i >= 4]
+        
+        # Helper to convert list to SE3
+        # Make sure that the output format is [x,y,z,qw,qx,qy,qz]
+        def to_SE3(pose_7d):
+            if hasattr(pose_7d, 'rotation'): return pose_7d
+            R = quat2mat(pose_7d[3:])
+            t = np.array(pose_7d[:3])
+            qx,qy,qz,qw = pose_7d[3], pose_7d[4], pose_7d[5], pose_7d[6]
+            quat = pinocchio.Quaternion(qw, qx, qy, qz)
+            pos = np.array(pose_7d[:3])
+            return pinocchio.SE3(quat, pos)
+        
+        # target_L_se3 = pinocchio.SE3(quat, pos)
+        target_L_se3 = to_SE3(left_target_pose)
+        target_R_se3 = to_SE3(right_target_pose)
+
+        # target_R_se3 = self.get_target_in_shoulder_frame("right_panda_link1", right_target_pose)
+        # === RESTART LOOP STARTS HERE ===
+        # Try up to 5 times with different seeds if we get stuck
+        for attempt in range(attempts):
+            # Setup initial q for this attempt
+            if attempt == 0:
+                # First try: Start from current position (closest solution)
+                q = np.copy(start_qpos)
+            else:
+                # Subsequent tries: Randomize active joints to escape local minima
+                # We use the Pinocchio helper to get a valid random config
+                random_full_q = self.pinocchio_model.get_random_configuration() # [cite: 58]
+                
+                # Start with current (to keep base/grippers correct)
+                q = np.copy(start_qpos)
+                
+                # Overwrite ONLY the arm joints with random values
+                q[active_indices] = random_full_q[active_indices]
+                print(f"  [IK] Attempt {attempt+1}: Restarting with random configuration...")
+
+            # Optimization Loop
+            for i in range(max_iter):
+                self.pinocchio_model.compute_forward_kinematics(q)
+
+                # Get Poses (Fixing the API mismatch)
+                p_L_obj = self.pinocchio_model.get_link_pose(left_idx)
+                p_R_obj = self.pinocchio_model.get_link_pose(right_idx)
+                
+                current_L_se3 = pinocchio.SE3(quat2mat(p_L_obj.q), p_L_obj.p)
+                current_R_se3 = pinocchio.SE3(quat2mat(p_R_obj.q), p_R_obj.p)
+
+                # Calculate Error in Body Frame
+                motion_L_local = pinocchio.log3(current_L_se3.actInv(target_L_se3).rotation)
+                error_rot_L = current_L_se3.rotation @ motion_L_local
+                error_pos_L = target_L_se3.translation - current_L_se3.translation
+                error_L = np.concatenate([error_pos_L, error_rot_L])
+                # error_L = current_L_se3.act(motion_L_local).vector
+                motion_R_local = pinocchio.log3(current_R_se3.actInv(target_R_se3).rotation)
+                error_rot_R = current_R_se3.rotation @ motion_R_local
+                error_pos_R = target_R_se3.translation - current_R_se3.translation
+                error_R = np.concatenate([error_pos_R, error_rot_R])
+                # error_R = current_R_se3.act(motion_R_local).vector
+                error_stack = np.concatenate([error_L, error_R])
+
+                # Check Success
+                if np.linalg.norm(error_stack) < threshold:
+                    print(f"  [IK] Converged in {i} iterations (Attempt {attempt+1}).")
+                    return q
+                
+                # Calculate Jacobian (Local Frame)
+                self.pinocchio_model.compute_full_jacobian(q)
+                J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=False)[:, active_indices]
+                J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=False)[:, active_indices]
+                J_stack = np.vstack([J_L, J_R])
+                
+                # Solve Update
+                damp = 1e-3
+                dq = J_stack.T @ np.linalg.inv(J_stack @ J_stack.T + damp * np.eye(12)) @ error_stack
+                
+                # Apply Update
+                q[active_indices] += step_size * dq
+                margin = 0.05
+            
+                # Clip between [Min + Margin, Max - Margin]
+                q = np.clip(
+                    q, 
+                    self.joint_limits[:, 0] + margin, 
+                    self.joint_limits[:, 1] - margin
+                )
+
+        print("❌ IK Failed to converge after multiple restarts.")
+        return "Failed"
     # Wrapper function when an object is held
     def plan_dual_arm_grasp(
         self,
@@ -601,7 +774,7 @@ class BimanualPlanner:
         current_qpos,
         time_step=0.1,
         rrt_range=0.1,
-        planning_time=1,
+        planning_time=10,
         fix_joint_limits=True,
         use_point_cloud=False,
         use_attach=False,
@@ -615,8 +788,8 @@ class BimanualPlanner:
     ):
         if fixed_joint_indices is None:
             fixed_joint_indices = []
-        self.planning_world.set_use_point_cloud(use_point_cloud)
-        self.planning_world.set_use_attach(use_attach)
+        # self.planning_world.set_use_point_cloud(use_point_cloud)
+        # self.planning_world.set_use_attach(use_attach)
         
         n = current_qpos.shape[0]
         if fix_joint_limits:
@@ -629,35 +802,56 @@ class BimanualPlanner:
         current_qpos = self.pad_qpos(current_qpos)
         
         self.robot.set_qpos(current_qpos, True)
-        collisions = self.planning_world.collide_full()
+        collisions = self.planning_world.check_collision()
+        if len(collisions) > 0:
+            for c in collisions:
+                # Try accessing different attributes depending on MPLib version
+                 n1 = getattr(c, "link_name1", getattr(c, "object_name1", str(c)))
+                 n2 = getattr(c, "link_name2", getattr(c, "object_name2", str(c)))
+                 print(f"  {n1} <--> {n2}")
+                 print
         if len(collisions) != 0:
             print("Invalid start state")
             return {"status": "Invalid start state"}
         
-        idx = self.move_group_joint_indices
-        goal_qpos_ = [goal_qposes[i][idx] for i in range(len(goal_qposes))]
-        
+        # idx = self.move_group_joint_indices
+        # print(goal_qposes)
+        # goal_qpos_ = [goal_qposes[i][idx] for i in range(len(goal_qposes))]
+        goal_qpos_ = goal_qposes
         fixed_joints = set()
         for joint_idx in fixed_joint_indices:
             fixed_joints.add(ompl.FixedJoint(0, joint_idx, current_qpos[joint_idx]))
-            
+        # print(self.planner.getSpaceInformation().getStateSpace().getDimension())
         # OMPL Wrapper Call
-        
+        # plan_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19]
+        start_state = current_qpos.astype(np.float64)
+        print(start_state)
+        try:
+            goal_states = [gq.astype(np.float64) for gq in goal_qpos_]
+            print(goal_states)
+        except AttributeError as e:
+            print("IK FAILED TO CONVERGE")
+            return {"status": "IK Failed"}
+        gripper_indices = [11, 12, 20, 21]
+        for idx in gripper_indices:
+            fixed_joints.add(ompl.FixedJoint(0, idx, current_qpos[idx]))
         status, path = self.planner.plan(
-            current_qpos[idx],
-            goal_qpos_,
+            start_state=start_state,
+            goal_states=goal_states,
             range=rrt_range,
             time=planning_time,
             fixed_joints=fixed_joints,
-            planner_name=planner_name,
-            no_simplification=no_simplification,
+            # planner_name=planner_name,
+            # no_simplification=no_simplification,
             constraint_function=constraint_function,
             constraint_jacobian=constraint_jacobian,
             constraint_tolerance=constraint_tolerance,
-            verbose=verbose,
+            verbose=True,
         )
-        
-        if status == "Exact Solution":
+        steps = 50
+        path = np.linspace(path[0], path[1], steps)
+        print(len(path))
+        if status == "Exact solution":
             if verbose:
                 ta.setup_logging("INFO")
             else:

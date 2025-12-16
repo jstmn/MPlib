@@ -21,7 +21,7 @@ namespace mplib::collision_detection::fcl {
 // Explicit Template Instantiation Definition ==========================================
 #define DEFINE_TEMPLATE_FCL_MODEL(S) template class FCLModelTpl<S>
 
-DEFINE_TEMPLATE_FCL_MODEL(float);
+// DEFINE_TEMPLATE_FCL_MODEL(float);
 DEFINE_TEMPLATE_FCL_MODEL(double);
 
 template <typename S>

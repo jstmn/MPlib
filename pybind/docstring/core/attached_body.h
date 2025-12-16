@@ -24,69 +24,6 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-static const char *__doc_mplib_AttachedBodyTpl =
-R"doc(Object defining bodies that can be attached to robot links. This is useful when
-handling objects picked up by the robot.
-
-Mimicking MoveIt2's ``moveit::core::AttachedBody``
-
-https://moveit.picknik.ai/main/api/html/classmoveit_1_1core_1_1AttachedBody.html)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_AttachedBodyTpl =
-R"doc(
-Construct an attached body for a specified link.
-
-:param name: name of the attached body
-:param object: collision object of the attached body
-:param attached_articulation: robot articulated model to attach to
-:param attached_link_id: id of the articulation link to attach to
-:param pose: attached pose (relative pose from attached link to object)
-:param touch_links: the link names that the attached body touches)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getAttachedArticulation =
-R"doc(
-Gets the articulation that this body is attached to)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getAttachedLinkGlobalPose =
-R"doc(
-Gets the global pose of the articulation link that this body is attached to)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getAttachedLinkId =
-R"doc(
-Gets the articulation link id that this body is attached to)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getGlobalPose =
-R"doc(
-Gets the global pose of the attached object)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getName =
-R"doc(
-Gets the attached object name)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getObject =
-R"doc(
-Gets the attached object (``FCLObjectPtr``))doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getPose =
-R"doc(
-Gets the attached pose (relative pose from attached link to object))doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_getTouchLinks =
-R"doc(
-Gets the link names that the attached body touches)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_setPose =
-R"doc(
-Sets the attached pose (relative pose from attached link to object))doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_setTouchLinks =
-R"doc(
-Sets the link names that the attached body touches)doc";
-
-static const char *__doc_mplib_AttachedBodyTpl_updatePose =
-R"doc(
-Updates the global pose of the attached object using current state)doc";
-
 /* ----- Begin of custom docstring section ----- */
 
 static const char *__doc_mplib_AttachedBodyTpl_pose =

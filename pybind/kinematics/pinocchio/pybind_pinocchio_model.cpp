@@ -10,6 +10,7 @@
 #include "docstring/kinematics/pinocchio/pinocchio_model.h"
 #include "mplib/kinematics/pinocchio/pinocchio_model.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 
