@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dual_panda_setup">
+
+  <xacro:include filename="panda_arm.xacro"/>
+
+  <link name="world"/>
+
+  <link name="table">
+    <visual>
+      <geometry><box size="1.2 1.6 0.05"/></geometry>
+      <material name="Wood"><color rgba="0.5 0.3 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="1.2 1.6 0.05"/></geometry>
+    </collision>
+    <inertial>
+       <mass value="20"/>
+       <inertia ixx="1.0" ixy="0" ixz="0" iyy="1.0" iyz="0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <joint name="world_to_table" type="fixed">
+    <parent link="world"/>
+    <child link="table"/>
+    <origin xyz="0 0 0.8" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:panda_arm prefix="panda_1" parent="table">
+    <origin xyz="0 -0.6 0.025" rpy="0 0 0"/> 
+  </xacro:panda_arm>
+
+  <xacro:panda_arm prefix="panda_2" parent="table">
+    <origin xyz="0 0.6 0.025" rpy="0 0 3.14159"/> 
+  </xacro:panda_arm>
+
+</robot>

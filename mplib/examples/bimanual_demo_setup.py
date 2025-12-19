@@ -89,9 +89,11 @@ class BimanualDemoSetup:
         """
         loader: sapien.URDFLoader = self.scene.create_urdf_loader()
         loader.fix_root_link = True
+        
         self.robot: sapien.Articulation = loader.load(
             kwargs.get("urdf_path", self.urdf_file)
         )
+        
         self.robot.set_root_pose(
             sapien.Pose(
                 # FIX: Lift robot by 1cm (0.01) to clear the floor
@@ -99,6 +101,7 @@ class BimanualDemoSetup:
                 kwargs.get("robot_origin_quat", [1, 0, 0, 0]),
             )
         )
+    
         self.active_joints = self.robot.get_active_joints()
         for joint in self.active_joints:
             joint.set_drive_property(

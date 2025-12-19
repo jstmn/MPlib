@@ -103,8 +103,8 @@ class DemoSetup:
         See planner.py for more details on the arguments.
         """
         self.planner = mplib.Planner(
-            urdf=kwargs.get("urdf_path", "./data/panda/panda.urdf"),
-            srdf=kwargs.get("srdf_path", "./data/panda/panda.srdf"),
+            urdf=kwargs.get("urdf_path", "./panda_assets/panda/panda.urdf"),
+            srdf=kwargs.get("srdf_path", "./panda_assets/panda/panda.srdf"),
             move_group=kwargs.get("move_group", "panda_hand"),
         )
 

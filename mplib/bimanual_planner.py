@@ -105,6 +105,7 @@ class BimanualPlanner:
         )
         print("HI 3")
         self.pinocchio_model = self.robot.get_pinocchio_model()
+        
         self.user_link_names = self.pinocchio_model.get_link_names()
         self.user_joint_names = self.pinocchio_model.get_joint_names()
         self.planning_world = PlanningWorld(
@@ -196,7 +197,8 @@ class BimanualPlanner:
             if len(joint_acc_limits)
             else np.ones(len(self.move_group_joint_indices))
         )
-        
+        self.active_indices = self.move_group_joint_indices
+        self.active_indices = [i for i in self.move_group_joint_indices if i >= 4]
         # Note: move_group_link_id is tricky for dual arm. 
         # We usually just store the first one or a list.
         if len(target_links) == 1:
@@ -336,6 +338,9 @@ class BimanualPlanner:
         if the user does not provide the full qpos but only the move_group joints,
         pad the qpos with the rest of the joints
         """
+        if len(qpos) == 2:
+            qpos = qpos[1].tolist()
+            
         if len(qpos) == len(self.move_group_joint_indices):
             tmp = (
                 articulation.get_qpos()
@@ -346,7 +351,7 @@ class BimanualPlanner:
             for k, idx in enumerate(self.move_group_joint_indices):
                 tmp[idx] = qpos[k]            
             qpos = tmp
-
+        
         assert len(qpos) == len(self.joint_limits), (
             f"length of qpos ({len(qpos)}) =/= "
             f"number of total joints ({len(self.joint_limits)})"
@@ -525,104 +530,222 @@ class BimanualPlanner:
         print("IK did not converge within the maximum number of iterations.")
         return "Failed", q"""
  
-    def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, left_link_name="left_panda_hand", right_link_name="right_panda_hand", threshold=1e-3, max_iter=100, step_size=0.1, attempts=100):
+    # def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, left_link_name="panda_2_hand_tcp", right_link_name="right_panda_hand", threshold=1e-3, max_iter=100, step_size=0.1, attempts=100):
+    #     if start_qpos is None:
+    #         start_qpos = self.robot.get_qpos()
+        
+    #     left_idx = self.link_name_2_idx.get(left_link_name, -1)
+    #     right_idx = self.link_name_2_idx.get(right_link_name, -1)
+        
+    #     # Filter active indices (Arms Only: >= 4)
+    #     all_indices = self.move_group_joint_indices
+    #     active_indices = [i for i in all_indices if i >= 4]
+        
+    #     # Helper to convert list to SE3
+    #     # Make sure that the output format is [x,y,z,qw,qx,qy,qz]
+    #     def to_SE3(pose_7d):
+    #         if hasattr(pose_7d, 'rotation'): return pose_7d
+    #         R = quat2mat(pose_7d[3:])
+    #         t = np.array(pose_7d[:3])
+    #         qx,qy,qz,qw = pose_7d[3], pose_7d[4], pose_7d[5], pose_7d[6]
+    #         quat = pinocchio.Quaternion(qw, qx, qy, qz)
+    #         pos = np.array(pose_7d[:3])
+    #         return pinocchio.SE3(quat, pos)
+        
+    #     # target_L_se3 = pinocchio.SE3(quat, pos)
+    #     target_L_se3 = to_SE3(left_target_pose)
+    #     target_R_se3 = to_SE3(right_target_pose)
+
+    #     # target_R_se3 = self.get_target_in_shoulder_frame("right_panda_link1", right_target_pose)
+    #     # === RESTART LOOP STARTS HERE ===
+    #     # Try up to 5 times with different seeds if we get stuck
+    #     for attempt in range(attempts):
+    #         # Setup initial q for this attempt
+    #         if attempt == 0:
+    #             # First try: Start from current position (closest solution)
+    #             q = np.copy(start_qpos)
+    #         else:
+    #             # Subsequent tries: Randomize active joints to escape local minima
+    #             # We use the Pinocchio helper to get a valid random config
+    #             random_full_q = self.pinocchio_model.get_random_configuration() # [cite: 58]
+                
+    #             # Start with current (to keep base/grippers correct)
+    #             q = np.copy(start_qpos)
+                
+    #             # Overwrite ONLY the arm joints with random values
+    #             q[active_indices] = random_full_q[active_indices]
+    #             print(f"  [IK] Attempt {attempt+1}: Restarting with random configuration...")
+
+    #         # Optimization Loop
+    #         for i in range(max_iter):
+    #             self.pinocchio_model.compute_forward_kinematics(q)
+
+    #             # Get Poses (Fixing the API mismatch)
+    #             p_L_obj = self.pinocchio_model.get_link_pose(left_idx)
+    #             p_R_obj = self.pinocchio_model.get_link_pose(right_idx)
+                
+    #             current_L_se3 = pinocchio.SE3(quat2mat(p_L_obj.q), p_L_obj.p)
+    #             current_R_se3 = pinocchio.SE3(quat2mat(p_R_obj.q), p_R_obj.p)
+
+    #             # Calculate Error in Body Frame
+    #             motion_L_local = pinocchio.log3(current_L_se3.actInv(target_L_se3).rotation)
+    #             error_rot_L = current_L_se3.rotation @ motion_L_local
+    #             error_pos_L = target_L_se3.translation - current_L_se3.translation
+    #             error_L = np.concatenate([error_pos_L, error_rot_L])
+    #             # error_L = current_L_se3.act(motion_L_local).vector
+    #             motion_R_local = pinocchio.log3(current_R_se3.actInv(target_R_se3).rotation)
+    #             error_rot_R = current_R_se3.rotation @ motion_R_local
+    #             error_pos_R = target_R_se3.translation - current_R_se3.translation
+    #             error_R = np.concatenate([error_pos_R, error_rot_R])
+    #             # error_R = current_R_se3.act(motion_R_local).vector
+    #             error_stack = np.concatenate([error_L, error_R])
+
+    #             # Check Success
+    #             if np.linalg.norm(error_stack) < threshold:
+    #                 print(f"  [IK] Converged in {i} iterations (Attempt {attempt+1}).")
+    #                 return q
+                
+    #             # Calculate Jacobian (Local Frame)
+    #             self.pinocchio_model.compute_full_jacobian(q)
+    #             J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=False)[:, active_indices]
+    #             J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=False)[:, active_indices]
+    #             J_stack = np.vstack([J_L, J_R])
+                
+    #             # Solve Update
+    #             damp = 1e-3
+    #             dq = J_stack.T @ np.linalg.inv(J_stack @ J_stack.T + damp * np.eye(12)) @ error_stack
+                
+    #             # Apply Update
+    #             q[active_indices] += step_size * dq
+    #             margin = 0.05
+            
+    #             # Clip between [Min + Margin, Max - Margin]
+    #             q = np.clip(
+    #                 q, 
+    #                 self.joint_limits[:, 0] + margin, 
+    #                 self.joint_limits[:, 1] - margin
+    #             )
+
+    #     print("❌ IK Failed to converge after multiple restarts.")
+    #     return "Failed"
+    
+    def IK(self, left_target_pose=None, right_target_pose=None, start_qpos=None, 
+           left_link_name="panda_2_hand_tcp", right_link_name="panda_1_hand_tcp", 
+           threshold=1e-3, max_iter=100, step_size=0.5, attempts=5):
+        
+        # 1. Setup
         if start_qpos is None:
             start_qpos = self.robot.get_qpos()
         
         left_idx = self.link_name_2_idx.get(left_link_name, -1)
         right_idx = self.link_name_2_idx.get(right_link_name, -1)
         
-        # Filter active indices (Arms Only: >= 4)
+        # Filter active indices (Arms Only: >= 4 to skip base)
         all_indices = self.move_group_joint_indices
         active_indices = [i for i in all_indices if i >= 4]
         
-        # Helper to convert list to SE3
-        # Make sure that the output format is [x,y,z,qw,qx,qy,qz]
-        def to_SE3(pose_7d):
-            if hasattr(pose_7d, 'rotation'): return pose_7d
-            R = quat2mat(pose_7d[3:])
-            t = np.array(pose_7d[:3])
-            qx,qy,qz,qw = pose_7d[3], pose_7d[4], pose_7d[5], pose_7d[6]
-            quat = pinocchio.Quaternion(qw, qx, qy, qz)
-            pos = np.array(pose_7d[:3])
-            return pinocchio.SE3(quat, pos)
-        
-        # target_L_se3 = pinocchio.SE3(quat, pos)
-        target_L_se3 = to_SE3(left_target_pose)
-        target_R_se3 = to_SE3(right_target_pose)
+        # --- HELPER: ROBUST CONVERSION ---
+        # Converts List (User) OR mplib.Pose (Wrapper) -> pin.SE3
+        def to_pin_SE3(pose_input):
+            if pose_input is None: return None
+            
+            # Case A: Input is a list [x, y, z, qw, qx, qy, qz] (from User)
+            if isinstance(pose_input, (list, np.ndarray)):
+                pos = np.array(pose_input[:3])
+                # Explicitly construct quaternion from (w, x, y, z)
+                # Pinocchio constructor signature is (w, x, y, z)
+                quat = pinocchio.Quaternion(pose_input[3], pose_input[4], pose_input[5], pose_input[6])
+                quat.normalize()
+                return pinocchio.SE3(quat, pos)
+            
+            # Case B: Input is mplib.pymp.Pose (from Wrapper)
+            # SAFE METHOD: Use Transformation Matrix to avoid quaternion order confusion
+            else:
+                mat = pose_input.to_transformation_matrix() # Returns 4x4 numpy array
+                R = mat[:3, :3]
+                t = mat[:3, 3]
+                return pinocchio.SE3(R, t)
 
-        # target_R_se3 = self.get_target_in_shoulder_frame("right_panda_link1", right_target_pose)
-        # === RESTART LOOP STARTS HERE ===
-        # Try up to 5 times with different seeds if we get stuck
+        # 2. Prepare Targets
+        target_L_se3 = to_pin_SE3(left_target_pose)
+        target_R_se3 = to_pin_SE3(right_target_pose)
+
+        # 3. Optimization Loop
         for attempt in range(attempts):
-            # Setup initial q for this attempt
             if attempt == 0:
-                # First try: Start from current position (closest solution)
                 q = np.copy(start_qpos)
             else:
-                # Subsequent tries: Randomize active joints to escape local minima
-                # We use the Pinocchio helper to get a valid random config
-                random_full_q = self.pinocchio_model.get_random_configuration() # [cite: 58]
-                
-                # Start with current (to keep base/grippers correct)
+                # Randomize only arm joints [cite: 146]
+                random_full_q = self.pinocchio_model.get_random_configuration()
                 q = np.copy(start_qpos)
-                
-                # Overwrite ONLY the arm joints with random values
                 q[active_indices] = random_full_q[active_indices]
-                print(f"  [IK] Attempt {attempt+1}: Restarting with random configuration...")
 
-            # Optimization Loop
             for i in range(max_iter):
+                # Update Model State [cite: 104, 107]
                 self.pinocchio_model.compute_forward_kinematics(q)
-
-                # Get Poses (Fixing the API mismatch)
-                p_L_obj = self.pinocchio_model.get_link_pose(left_idx)
-                p_R_obj = self.pinocchio_model.get_link_pose(right_idx)
-                
-                current_L_se3 = pinocchio.SE3(quat2mat(p_L_obj.q), p_L_obj.p)
-                current_R_se3 = pinocchio.SE3(quat2mat(p_R_obj.q), p_R_obj.p)
-
-                # Calculate Error in Body Frame
-                motion_L_local = pinocchio.log3(current_L_se3.actInv(target_L_se3).rotation)
-                error_rot_L = current_L_se3.rotation @ motion_L_local
-                error_pos_L = target_L_se3.translation - current_L_se3.translation
-                error_L = np.concatenate([error_pos_L, error_rot_L])
-                # error_L = current_L_se3.act(motion_L_local).vector
-                motion_R_local = pinocchio.log3(current_R_se3.actInv(target_R_se3).rotation)
-                error_rot_R = current_R_se3.rotation @ motion_R_local
-                error_pos_R = target_R_se3.translation - current_R_se3.translation
-                error_R = np.concatenate([error_pos_R, error_rot_R])
-                # error_R = current_R_se3.act(motion_R_local).vector
-                error_stack = np.concatenate([error_L, error_R])
-
-                # Check Success
-                if np.linalg.norm(error_stack) < threshold:
-                    print(f"  [IK] Converged in {i} iterations (Attempt {attempt+1}).")
-                    return q
-                
-                # Calculate Jacobian (Local Frame)
                 self.pinocchio_model.compute_full_jacobian(q)
-                J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=False)[:, active_indices]
-                J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=False)[:, active_indices]
-                J_stack = np.vstack([J_L, J_R])
-                
-                # Solve Update
-                damp = 1e-3
-                dq = J_stack.T @ np.linalg.inv(J_stack @ J_stack.T + damp * np.eye(12)) @ error_stack
-                
-                # Apply Update
-                q[active_indices] += step_size * dq
-                margin = 0.05
-            
-                # Clip between [Min + Margin, Max - Margin]
-                q = np.clip(
-                    q, 
-                    self.joint_limits[:, 0] + margin, 
-                    self.joint_limits[:, 1] - margin
-                )
 
-        print("❌ IK Failed to converge after multiple restarts.")
+                error_stack = []
+                J_stack = []
+
+                # --- LEFT ARM ---
+                if target_L_se3 is not None:
+                    # Get Current Pose (as mplib.Pose) -> Convert to Pin.SE3 [cite: 144]
+                    mplib_pose_L = self.pinocchio_model.get_link_pose(left_idx)
+                    curr_L_se3 = to_pin_SE3(mplib_pose_L)
+                    
+                    # Error: Local Frame (Body)
+                    # dMf = Current^-1 * Target
+                    dMf = curr_L_se3.actInv(target_L_se3)
+                    err_L = pinocchio.log(dMf).vector # 6D Twist
+                    error_stack.append(err_L)
+                    
+                    # Jacobian: Local Frame (Must match Error Frame) 
+                    J_L = self.pinocchio_model.get_link_jacobian(left_idx, local=True)
+                    J_stack.append(J_L[:, active_indices])
+
+                # --- RIGHT ARM ---
+                if target_R_se3 is not None:
+                    mplib_pose_R = self.pinocchio_model.get_link_pose(right_idx)
+                    curr_R_se3 = to_pin_SE3(mplib_pose_R)
+                    
+                    dMf = curr_R_se3.actInv(target_R_se3)
+                    err_R = pinocchio.log(dMf).vector
+                    error_stack.append(err_R)
+                    
+                    J_R = self.pinocchio_model.get_link_jacobian(right_idx, local=True)
+                    J_stack.append(J_R[:, active_indices])
+
+                # Check Convergence
+                if not error_stack: return "Failed", q
+                err_total = np.concatenate(error_stack)
+                
+                if np.linalg.norm(err_total) < threshold:
+                    return q # Success: Return just the q array
+
+                # Solve: J * dq = err
+                J_total = np.vstack(J_stack)
+                damp = 1e-3
+                JJt = J_total @ J_total.T
+                dq = J_total.T @ np.linalg.inv(JJt + damp * np.eye(len(err_total))) @ err_total
+                
+                # Update
+                q[active_indices] += step_size * dq
+                
+                # Clip Limits [cite: 127]
+                # Note: get_joint_limits returns list of arrays, we must flatten them carefully
+                if i == 0: # Cache limits once
+                    limits = self.pinocchio_model.get_joint_limits()
+                    # Stack list of [min, max] arrays into (N, 2)
+                    limits_stack = np.vstack(limits) 
+                    lower_lim = limits_stack[:, 0]
+                    upper_lim = limits_stack[:, 1]
+                
+                q = np.clip(q, lower_lim, upper_lim)
+
+        print("❌ IK Failed to converge.")
         return "Failed"
+
     # Wrapper function when an object is held
     def plan_dual_arm_grasp(
         self,
