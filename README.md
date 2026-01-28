@@ -1,8 +1,9 @@
 # MPlib: a Lightweight Motion Planning Library
 
-<p align="center">
-https://github.com/user-attachments/assets/dac84e30-1fda-4684-8fa7-075366c2b844
-</p>
+
+https://github.com/user-attachments/assets/18f77352-2b13-4f1b-a25b-4b8c01773f53
+
+
 
 MPlib is a lightweight python package for motion planning,
 which is decoupled from ROS and is easy to set up.  
