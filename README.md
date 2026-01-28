@@ -1,7 +1,8 @@
 # MPlib: Bimanual Motion Planning Extension
 
-![Bimanual Demo](https://raw.githubusercontent.com/jstmn/MPlib/Prajwal/demos/2026-01-22_11%3A05%3A34___n%3A8.mp4)
-![Bimanual Demo 2](https://raw.githubusercontent.com/jstmn/MPlib/Prajwal/demos/2026-01-23_08%3A17%3A34___n%3A4.mp4)
+
+![StackCube](https://github.com/user-attachments/assets/af878d1c-9882-42e9-b6ec-8bd222b490f0)
+![PourPotDemo](https://github.com/user-attachments/assets/9f710b21-69b3-42b8-be34-97e70b10e97a)
 
 **Fork extending MPlib for bimanual manipulation planning, integrated with ManiSkill**
 
