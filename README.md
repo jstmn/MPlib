@@ -1,24 +1,15 @@
-# MPlib: a Lightweight Motion Planning Library
+# MPlib: Bimanual Motion Planning Extension
 
+[![Bimanual Demo](https://github.com/user-attachments/assets/18f77352-2b13-4f1b-a25b-4b8c01773f53)](https://github.com/user-attachments/assets/18f77352-2b13-4f1b-a25b-4b8c01773f53)
 
-https://github.com/user-attachments/assets/18f77352-2b13-4f1b-a25b-4b8c01773f53
+**Fork extending MPlib for bimanual manipulation planning, integrated with ManiSkill for Colosseum V2 benchmarks (RSS 2026 submission).**
 
-
-
-MPlib is a lightweight python package for motion planning,
-which is decoupled from ROS and is easy to set up.  
-With a few lines of python code, one can achieve most of the motion planning
-functionalities in robot manipulation.
-This fork contains the bimanual implementation of the same which has been integrated with maniskill
+## 🚀 Key Contributions
+- **Bimanual manipulation support** using Pinocchio (dynamics), OMPL (planning), FCL (collision)
+- **Full ManiSkill integration** for GPU-accelerated benchmarks
+- **Pinocchio/OMPL/FCL integration** for dual-arm motion planning
 
 ## Installation
-
-Pre-built pip packages support Ubuntu 20.04+ with Python 3.8+.
-
-```
+```bash
 pip install mplib
-```
-
-## Usage
-
-See our [tutorial](https://motion-planning-lib.readthedocs.io/latest/tutorials/getting_started.html) for detailed usage and examples.
+pip install pinocchio ompl fcl  # Bimanual dependencies
