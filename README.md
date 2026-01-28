@@ -1,6 +1,7 @@
 # MPlib: a Lightweight Motion Planning Library
 
 <p align="center">
+https://github.com/user-attachments/assets/dac84e30-1fda-4684-8fa7-075366c2b844
 </p>
 
 MPlib is a lightweight python package for motion planning,
