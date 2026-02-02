@@ -2,7 +2,7 @@
 
 import numpy as np
 import sapien.core as sapien
-from mplib.examples.bimanual_demo_setup_v3 import BimanualDemoSetup_v3
+from mplib.examples.bimanual_demo_setup import BimanualDemoSetup_v3
 import time
 
 class BimanualPlanningDemo_v3(BimanualDemoSetup_v3):
