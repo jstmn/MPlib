@@ -148,15 +148,16 @@ actions rather than remaining an offline kinematic artifact.
 
 ## Example Tasks
 
-The planner was used to script demonstrations for bimanual Colosseum V2 tasks
-such as:
+The planner was used to script demonstrations for bimanual Colosseum V2 tasks.
 
-- Passing a cube or bottle between arms.
-- Opening and interacting with drawers.
-- Coordinated cube stacking.
-- Pen-cap manipulation.
-- Bimanual threading-style manipulation.
-- Synchronized box pushing.
+| Task family | What it demonstrates | Video |
+| --- | --- | --- |
+| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Threading-style manipulation | Local Cartesian motion with simultaneous end-effector goals. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Box pushing | Synchronized dual-arm Cartesian motion in a shared workspace. | [demo video](PASTE_VIDEO_URL_HERE) |
 
 These tasks require a mix of global planning, local Cartesian motion, gripper
 timing, collision reasoning, and two-arm coordination.
