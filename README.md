@@ -11,10 +11,8 @@ collision-aware joint-space planning, and trajectory time parameterization.
 
 
 
-[Stack 3 Cubes](https://github.com/user-attachments/assets/d0c21730-682a-44a9-a1a6-07f6ee88eccf)
-[Pour Pot](https://github.com/user-attachments/assets/4d82883f-ea65-4eab-8289-646232738d83)
-
-
+<video src="https://github.com/user-attachments/assets/d0c21730-682a-44a9-a1a6-07f6ee88eccf" width="100%" controls></video>
+<video src="https://github.com/user-attachments/assets/4d82883f-ea65-4eab-8289-646232738d83" width="100%" controls></video>
 
 ## Motivation
 
