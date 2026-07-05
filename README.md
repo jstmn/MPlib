@@ -152,12 +152,12 @@ The planner was used to script demonstrations for bimanual Colosseum V2 tasks.
 
 | Task family | What it demonstrates | Video |
 | --- | --- | --- |
-| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | [demo video](PASTE_VIDEO_URL_HERE) |
-| Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. | [demo video](PASTE_VIDEO_URL_HERE) |
-| Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. | [demo video](PASTE_VIDEO_URL_HERE) |
-| Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. | [demo video](PASTE_VIDEO_URL_HERE) |
-| Threading-style manipulation | Local Cartesian motion with simultaneous end-effector goals. | [demo video](PASTE_VIDEO_URL_HERE) |
-| Box pushing | Synchronized dual-arm Cartesian motion in a shared workspace. | [demo video](PASTE_VIDEO_URL_HERE) |
+| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | [Pass Cube](demos/DualArmPickCube.mp4) |
+| Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. | [Put in Drawer](demos/DualArmDrawerPlace.mp4) |
+| Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. | [Stack Cubes](demos/DualArmStackCube.mp4) |
+| Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. | [Cap in Pen](demos/DualArmPenCap.mp4) |
+| Threading-style manipulation | Local Cartesian motion with simultaneous end-effector goals. | [Threading](demos/DualArmThreading.mp4) |
+| Box pushing | Synchronized dual-arm Cartesian motion in a shared workspace. | [Push Box](demos/DualArmPushBox.mp4) |
 
 These tasks require a mix of global planning, local Cartesian motion, gripper
 timing, collision reasoning, and two-arm coordination.
