@@ -152,7 +152,7 @@ The planner was used to script demonstrations for bimanual Colosseum V2 tasks.
 
 | Task family | What it demonstrates | Video |
 | --- | --- | --- |
-| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | <video src="demos/DualArmPickCube.mp4" width="100%" controls></video>|
+| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | <video src="https://github.com/user-attachments/assets/e0437622-49c0-42f8-b0a8-d7b60150be64" width="100%" controls></video>|
 | Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. | [Put in Drawer](demos/DualArmDrawerPlace.mp4) |
 | Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. | [Stack Cubes](demos/DualArmStackCube.mp4) |
 | Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. | [Cap in Pen](demos/DualArmPenCap.mp4) |
