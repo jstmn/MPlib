@@ -156,12 +156,12 @@ The planner was used to script demonstrations for bimanual Colosseum V2 tasks.
 
 | Task family | What it demonstrates | Video |
 | --- | --- | --- |
-| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. | <video src="https://github.com/user-attachments/assets/e0437622-49c0-42f8-b0a8-d7b60150be64" width="100%" controls></video>|
-| Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. | <video src="https://github.com/user-attachments/assets/e221d32f-ede8-448e-b390-bceaf76b9fa6" width="100%" controls></video>|
-| Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. | <video src="https://github.com/user-attachments/assets/be728c13-c610-4ba6-91b1-25bf98383194" width="100%" controls></video>|
-| Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. | <video src="https://github.com/user-attachments/assets/ce0fa9c2-ba46-4939-9388-2331aa76e16f" width="100%" controls></video>|
-| Threading-style manipulation | Local Cartesian motion with simultaneous end-effector goals. | <video src="https://github.com/user-attachments/assets/44ba014c-a1a1-4486-a95b-0f3a947def1b" width="100%" controls></video>|
-| Box pushing | Synchronized dual-arm Cartesian motion in a shared workspace. | <video src="https://github.com/user-attachments/assets/991d4559-7763-4c28-9adc-a86c2d0f1273" width="100%" controls></video>|
+| Cube handoff | Dual-arm target-pose planning, single-arm screw motion, and coordinated gripper timing. |<video src="https://github.com/user-attachments/assets/e0437622-49c0-42f8-b0a8-d7b60150be64" width="100%" controls></video>|
+| Drawer interaction | Collision-aware approach planning and local Cartesian motion around articulated objects. |<video src="https://github.com/user-attachments/assets/e221d32f-ede8-448e-b390-bceaf76b9fa6" width="100%" controls></video>|
+| Cube stacking | Alternating single-arm and dual-arm plans for long-horizon pick-and-place. |<video src="https://github.com/user-attachments/assets/be728c13-c610-4ba6-91b1-25bf98383194" width="100%" controls></video>|
+| Pen-cap manipulation | Fine-grained bimanual pose sequencing and gripper coordination. |<video src="https://github.com/user-attachments/assets/ce0fa9c2-ba46-4939-9388-2331aa76e16f" width="100%" controls></video>|
+| Threading-style manipulation | Local Cartesian motion with simultaneous end-effector goals. |<video src="https://github.com/user-attachments/assets/44ba014c-a1a1-4486-a95b-0f3a947def1b" width="100%" controls></video>|
+| Box pushing | Synchronized dual-arm Cartesian motion in a shared workspace. |<video src="https://github.com/user-attachments/assets/991d4559-7763-4c28-9adc-a86c2d0f1273" width="100%" controls></video>|
 
 These tasks require a mix of global planning, local Cartesian motion, gripper
 timing, collision reasoning, and two-arm coordination.
