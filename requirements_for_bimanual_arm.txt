@@ -1,0 +1,19 @@
+How to go about implementing?
+The current implementation, it uses all basic libraries that MPlib (pinocchio, KDL, FCL, OMPL) uses and does everything from scratch. It takes too long to implement and is very difficult. Is there a way to build upon existing mplib planner to create a bimanual planner. I have refactored the code to the new urdf, let me try to debug it and fix it. If it does not work by tomorrow, I will do the following implementation.
+
+Requirements of the bimanual planner - 
+1. It should be able to move both the arms simultaneously, without colliding with each other.
+2. I should be able to specify targets for individual arms or both arms, and they should move appropriately.
+3. Should use the existing mplib planner as much as possible and avoid using the basic libaries like pinocchio, OMPL etc.
+4. How should it grasp and move?
+ i) When both arms are grasping two independent objects. Then move normally (probably using existing mplib planner if possible.)
+ ii) When both arms are grasp the same object. Then we will be moving the object(using screw motion only for now), and the arms must adjust accordingly.
+5. How do they avoid collisions?
+The present mplib plan_qpos should take care of collision avoidance for moving to target (before grasping object).  When both the 
+6. My plan on how to go about doing this. 
+a. For IK, we will do sequential planning using MPlib library. Because the using Pinocchio directly is not giving great results.
+b. For the planning, I will handle it in two cases. When the arms are independent, they just use existing mplib planner code. When they are constrained, that is they hold onto the same object, it can be handled by giving the target positions for the object, using screw and maybe OMPL directly.
+
+Vizualize target poses.
+Issue for GUI crash
+

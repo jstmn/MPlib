@@ -6,6 +6,7 @@
 #include "docstring/planning/ompl/fixed_joint.h"
 #include "mplib/planning/ompl/fixed_joint.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

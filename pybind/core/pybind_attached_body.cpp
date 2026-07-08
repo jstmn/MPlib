@@ -10,6 +10,7 @@
 #include "docstring/core/attached_body.h"
 #include "mplib/core/attached_body.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

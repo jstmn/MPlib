@@ -11,6 +11,7 @@
 #include "docstring/core/articulated_model.h"
 #include "mplib/core/articulated_model.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

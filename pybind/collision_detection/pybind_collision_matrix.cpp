@@ -8,6 +8,7 @@
 
 #include "docstring/collision_detection/collision_matrix.h"
 #include "mplib/collision_detection/collision_matrix.h"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

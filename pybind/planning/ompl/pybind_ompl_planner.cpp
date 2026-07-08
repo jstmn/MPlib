@@ -9,6 +9,7 @@
 #include "docstring/planning/ompl/ompl_planner.h"
 #include "mplib/planning/ompl/ompl_planner.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

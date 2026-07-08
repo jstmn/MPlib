@@ -10,6 +10,7 @@
 #include "docstring/kinematics/kdl/kdl_model.h"
 #include "mplib/kinematics/kdl/kdl_model.h"
 #include "pybind_macros.hpp"
+#define DOC(...) ""
 
 namespace py = pybind11;
 

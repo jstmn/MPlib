@@ -13,7 +13,7 @@ namespace mplib::collision_detection::fcl {
   template fcl::ConvexPtr<S> loadMeshAsConvex<S>(const std::string &mesh_path,       \
                                                  const Vector3<S> &scale)
 
-DEFINE_TEMPLATE_FCL_UTILS(float);
+// DEFINE_TEMPLATE_FCL_UTILS(float);
 DEFINE_TEMPLATE_FCL_UTILS(double);
 
 template <typename S>

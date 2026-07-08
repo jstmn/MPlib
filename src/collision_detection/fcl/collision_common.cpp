@@ -14,7 +14,7 @@ namespace mplib::collision_detection::fcl {
                          const fcl::DistanceRequest<S> &request,                       \
                          fcl::DistanceResult<S> &result)
 
-DEFINE_TEMPLATE_FCL_COMMON(float);
+// DEFINE_TEMPLATE_FCL_COMMON(float);
 DEFINE_TEMPLATE_FCL_COMMON(double);
 
 template <typename S>

@@ -5,7 +5,7 @@ namespace mplib {
 // Explicit Template Instantiation Definition ==========================================
 #define DEFINE_TEMPLATE_ATTACHED_BODY(S) template class AttachedBodyTpl<S>
 
-DEFINE_TEMPLATE_ATTACHED_BODY(float);
+// DEFINE_TEMPLATE_ATTACHED_BODY(float);
 DEFINE_TEMPLATE_ATTACHED_BODY(double);
 
 template <typename S>
